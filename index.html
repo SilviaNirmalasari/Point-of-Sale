@@ -1,1012 +1,1022 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>POS Marketplace - Pink Theme (with Edit/Delete Orders & Add Product)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Marketplace - Modern Pink</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#ec4899',
-                        secondary: '#f472b6',
-                        dark: '#9d174d',
-                    }
-                }
+          theme: {
+            extend: {
+              colors: {
+                primary: '#ec4899',
+                secondary: '#f472b6',
+                dark: '#831843',
+              }
             }
+          }
         }
     </script>
+    <style>
+        body {
+          background: linear-gradient(135deg, #fce7f3 0%, #f9a8d4 50%, #fbcfe8 100%);
+          min-height: 100vh;
+          font-family: 'Inter', system-ui, sans-serif;
+        }
+        .glass {
+          background: rgba(255, 255, 255, 0.25);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .btn-main {
+          background: linear-gradient(90deg, #ec4899, #f472b6);
+          box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+        .btn-main:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
+        }
+        .fade-in {
+          animation: fadeIn 0.6s ease-out forwards;
+        }
+        @keyframes fadeIn {
+          from {opacity: 0; transform: translateY(15px);}
+          to {opacity: 1; transform: translateY(0);}
+        }
+        .category-btn {
+          background: white;
+          color: #4b5563;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        .category-btn:hover {
+          background: #fce7f3;
+        }
+        .category-btn.active {
+          background: linear-gradient(90deg, #ec4899, #f472b6);
+          color: white;
+          box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+        }
+        .dialog-overlay {
+          animation: fadeInOverlay 0.3s ease-out;
+        }
+        @keyframes fadeInOverlay {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .dialog-content {
+          animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .tab-btn {
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        .tab-btn.active {
+          border-bottom: 3px solid #ec4899;
+          color: #ec4899;
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-pink-50 to-rose-100 min-h-screen">
-<!-- Login Screen -->
-<div id="loginScreen" class="flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div class="bg-gradient-to-r from-pink-500 to-rose-500 p-8 text-center">
-            <h1 class="text-3xl font-bold text-white mb-2">🛍️ POS Marketplace</h1>
-            <p class="text-pink-100">Silakan login untuk melanjutkan</p>
+<body>
+
+<!-- Custom Dialog -->
+<div id="customDialog" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4 dialog-overlay">
+    <div class="glass rounded-3xl shadow-2xl w-full max-w-md p-6 dialog-content">
+        <div class="text-center mb-4">
+            <div id="dialogIcon" class="text-6xl mb-3"></div>
+            <h3 id="dialogTitle" class="text-2xl font-bold text-gray-800 mb-2"></h3>
+            <p id="dialogMessage" class="text-gray-600"></p>
         </div>
-        <div class="p-8">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">Username</label>
-                    <input
-                            type="text"
-                            id="loginUsername"
-                            class="w-full px-4 py-3 border-2 border-pink-200 rounded-lg focus:outline-none focus:border-pink-500 transition"
-                            placeholder="Masukkan username"
-                    >
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">Password</label>
-                    <input
-                            type="password"
-                            id="loginPassword"
-                            class="w-full px-4 py-3 border-2 border-pink-200 rounded-lg focus:outline-none focus:border-pink-500 transition"
-                            placeholder="Masukkan password"
-                    >
-                </div>
-                <button onclick="login()" class="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg font-semibold hover:from-pink-600 hover:to-rose-600 transition shadow-lg">
-                    Login
-                </button>
+        <button id="dialogBtn" class="btn-main w-full py-3 rounded-xl text-white font-semibold">OK</button>
+    </div>
+</div>
+
+<!-- Product Form Modal (Add/Edit) -->
+<div id="productFormModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[90] p-4">
+    <div class="glass w-full max-w-md p-6 rounded-3xl shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h2 id="productFormTitle" class="text-2xl font-bold text-pink-600">Tambah Produk</h2>
+            <button onclick="closeProductForm()" class="text-gray-600 hover:text-pink-600 text-3xl leading-none">&times;</button>
+        </div>
+        <div class="space-y-3">
+            <input type="hidden" id="editProductId" />
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Produk</label>
+                <input id="productName" type="text" class="w-full px-4 py-2 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500" />
             </div>
-            <div class="mt-6 pt-6 border-t border-gray-200">
-                <p class="text-sm text-gray-600 text-center mb-3">Demo Account:</p>
-                <div class="grid grid-cols-2 gap-3 text-xs">
-                    <div class="bg-pink-50 p-3 rounded-lg">
-                        <p class="font-semibold text-pink-700">Admin</p>
-                        <p class="text-gray-600">Username: admin</p>
-                        <p class="text-gray-600">Password: admin123</p>
-                    </div>
-                    <div class="bg-rose-50 p-3 rounded-lg">
-                        <p class="font-semibold text-rose-700">User</p>
-                        <p class="text-gray-600">Username: user</p>
-                        <p class="text-gray-600">Password: user123</p>
-                    </div>
-                </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Harga (Rp)</label>
+                <input id="productPrice" type="number" class="w-full px-4 py-2 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Stok</label>
+                <input id="productStock" type="number" class="w-full px-4 py-2 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                <select id="productCategory" class="w-full px-4 py-2 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500">
+                    <option value="elektronik">Elektronik</option>
+                    <option value="fashion">Fashion</option>
+                    <option value="makanan">Makanan</option>
+                    <option value="alat-tulis">Alat Tulis</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Icon Emoji</label>
+                <input id="productImage" type="text" placeholder="Contoh: 📱" class="w-full px-4 py-2 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500" />
+            </div>
+            <button onclick="saveProduct()" class="btn-main w-full py-3 rounded-xl text-white font-semibold">Simpan Produk</button>
+        </div>
+    </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="flex items-center justify-center min-h-screen fade-in p-4">
+    <div class="glass p-8 rounded-3xl shadow-2xl w-full max-w-md">
+        <div class="text-center mb-6">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent mb-2">🛍️ POS Marketplace</h1>
+            <p class="text-gray-600">Silahkan login untuk melanjutkan</p>
+        </div>
+        <div class="space-y-4">
+            <input id="loginUsername" type="text" placeholder="Username" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition" />
+            <input id="loginPassword" type="password" placeholder="Password" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition" />
+            <div class="flex items-center gap-2">
+                <input id="rememberMe" type="checkbox" class="w-4 h-4 accent-pink-500" />
+                <label for="rememberMe" class="text-sm text-gray-700">Simpan login saya</label>
+            </div>
+            <button id="btnLogin" class="btn-main w-full py-3 rounded-xl text-white font-semibold">Login</button>
+            <button id="btnShowRegister" class="w-full py-3 border-2 border-pink-400 text-pink-600 rounded-xl hover:bg-pink-50 transition font-medium">Belum punya akun? Daftar</button>
+            <div class="mt-4 p-4 bg-pink-50 rounded-xl text-xs text-gray-600">
+                <p class="font-semibold mb-1">Demo Account:</p>
+                <p>Admin: <code>admin</code> / <code>admin123</code></p>
+                <p>User: <code>user</code> / <code>user123</code></p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- User Interface -->
-<div id="userInterface" class="hidden">
-    <nav class="bg-white shadow-lg sticky top-0 z-10">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <span class="text-2xl">🛍️</span>
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">POS Marketplace</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button onclick="showUserOrders()" class="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition font-medium">
-                        📦 Pesanan Saya
-                    </button>
-                    <button onclick="toggleCart()" class="relative px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition font-medium">
-                        🛒 Keranjang <span id="cartBadge" class="ml-1 bg-white text-pink-500 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
-                    </button>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-gray-700 font-medium" id="userDisplayName"></span>
-                        <button onclick="logout()" class="text-gray-500 hover:text-pink-500 transition">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                            </svg>
-                        </button>
+<!-- REGISTER SCREEN -->
+<div id="registerScreen" class="hidden flex items-center justify-center min-h-screen fade-in p-4">
+    <div class="glass p-8 rounded-3xl shadow-2xl w-full max-w-md">
+        <div class="text-center mb-6">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent mb-2">📝 Daftar Akun</h1>
+            <p class="text-gray-600">Buat akun baru untuk berbelanja</p>
+        </div>
+        <div class="space-y-3">
+            <input id="regFullname" placeholder="Nama Lengkap" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition" />
+            <input id="regUsername" placeholder="Username" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition" />
+            <input id="regEmail" type="email" placeholder="Email" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition" />
+            <input id="regPassword" type="password" placeholder="Password (min. 6 karakter)" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition" />
+            <input id="regConfirmPassword" type="password" placeholder="Konfirmasi Password" class="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition" />
+            <button id="btnRegister" class="btn-main w-full py-3 rounded-xl text-white font-semibold mt-2">Daftar Sekarang</button>
+            <button id="btnShowLogin" class="w-full py-3 border-2 border-pink-400 text-pink-600 rounded-xl hover:bg-pink-50 transition font-medium">Sudah punya akun? Login</button>
+        </div>
+    </div>
+</div>
+
+<!-- USER INTERFACE -->
+<div id="userInterface" class="hidden fade-in">
+    <nav class="glass sticky top-0 z-50 px-6 py-4 mb-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">🛍️ POS Marketplace</h2>
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-2 px-4 py-2 bg-pink-50 rounded-xl">
+                    <span class="text-2xl">👤</span>
+                    <div class="text-sm">
+                        <p class="font-semibold text-gray-800" id="userName">User</p>
+                        <p class="text-xs text-gray-500">Customer</p>
                     </div>
                 </div>
+                <button id="btnShowOrders" class="px-4 py-2 bg-pink-100 text-pink-700 rounded-xl font-medium hover:bg-pink-200 transition">📦 Pesanan</button>
+                <button id="btnCart" class="btn-main px-4 py-2 rounded-xl text-white font-medium flex items-center gap-2">
+                    🛒 <span id="cartBadge" class="bg-white text-pink-600 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+                </button>
+                <button id="btnLogout" class="text-gray-600 hover:text-pink-600 transition text-2xl">🚪</button>
             </div>
         </div>
     </nav>
 
-    <div class="container mx-auto px-4 py-6">
-        <div class="mb-6">
-            <input
-                    type="text"
-                    id="searchInput"
-                    placeholder="🔍 Cari produk..."
-                    class="w-full px-6 py-4 border-2 border-pink-200 rounded-xl focus:outline-none focus:border-pink-500 transition shadow-sm"
-                    oninput="searchProducts()"
-            >
+    <div class="container mx-auto px-4 pb-8">
+        <input id="searchInput" type="text" placeholder="🔍 Cari produk..." class="w-full px-6 py-4 mb-6 rounded-xl border-2 border-pink-200 focus:outline-none focus:border-pink-500 transition shadow-sm" />
+
+        <div class="flex gap-3 mb-6 overflow-x-auto pb-2">
+            <button class="category-btn active px-6 py-2 rounded-full font-medium whitespace-nowrap" data-cat="semua">Semua</button>
+            <button class="category-btn px-6 py-2 rounded-full font-medium whitespace-nowrap" data-cat="elektronik">Elektronik</button>
+            <button class="category-btn px-6 py-2 rounded-full font-medium whitespace-nowrap" data-cat="fashion">Fashion</button>
+            <button class="category-btn px-6 py-2 rounded-full font-medium whitespace-nowrap" data-cat="makanan">Makanan</button>
+            <button class="category-btn px-6 py-2 rounded-full font-medium whitespace-nowrap" data-cat="alat-tulis">Alat Tulis</button>
         </div>
 
-        <div class="mb-6">
-            <div class="flex space-x-3 overflow-x-auto pb-2">
-                <button onclick="filterCategory('semua')" class="category-btn active px-6 py-2 rounded-full font-medium transition whitespace-nowrap">
-                    Semua
-                </button>
-                <button onclick="filterCategory('elektronik')" class="category-btn px-6 py-2 rounded-full font-medium transition whitespace-nowrap">
-                    Elektronik
-                </button>
-                <button onclick="filterCategory('fashion')" class="category-btn px-6 py-2 rounded-full font-medium transition whitespace-nowrap">
-                    Fashion
-                </button>
-                <button onclick="filterCategory('makanan')" class="category-btn px-6 py-2 rounded-full font-medium transition whitespace-nowrap">
-                    Makanan
-                </button>
-                <button onclick="filterCategory('alat-tulis')" class="category-btn px-6 py-2 rounded-full font-medium transition whitespace-nowrap">
-                    Alat Tulis
-                </button>
-            </div>
-        </div>
-
-        <div id="productGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Products here -->
-        </div>
+        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </div>
 </div>
 
-<!-- Admin Interface -->
-<div id="adminInterface" class="hidden">
-    <nav class="bg-white shadow-lg sticky top-0 z-10">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <span class="text-2xl">👨‍💼</span>
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">Admin Dashboard</h1>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-gray-700 font-medium">Admin</span>
-                    <button onclick="logout()" class="text-gray-500 hover:text-pink-500 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
-                    </button>
-                </div>
+<!-- ADMIN INTERFACE -->
+<div id="adminInterface" class="hidden fade-in p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">👨‍💼 Admin Dashboard</h2>
+            <p class="text-gray-600 mt-1">Selamat datang, <span id="adminName" class="font-semibold text-pink-600">Admin</span>!</p>
+        </div>
+        <button id="btnAdminLogout" class="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-pink-600 transition bg-pink-50 rounded-xl hover:bg-pink-100">
+            <span class="font-medium">Logout</span>
+            <span class="text-2xl">🚪</span>
+        </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-4 mb-6 border-b-2 border-pink-100">
+        <button onclick="switchTab('dashboard')" id="tabDashboard" class="tab-btn active px-4 py-2 font-semibold">📊 Dashboard</button>
+        <button onclick="switchTab('products')" id="tabProducts" class="tab-btn px-4 py-2 font-semibold">📦 Kelola Produk</button>
+        <button onclick="switchTab('orders')" id="tabOrders" class="tab-btn px-4 py-2 font-semibold">🛒 Pesanan</button>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="contentDashboard">
+        <div class="grid lg:grid-cols-3 gap-4 mb-6">
+            <div class="glass p-6 rounded-2xl text-center">
+                <p class="text-gray-600 mb-2">Pesanan Pending</p>
+                <h3 id="pendingCount" class="text-4xl text-yellow-600 font-bold">0</h3>
+            </div>
+            <div class="glass p-6 rounded-2xl text-center">
+                <p class="text-gray-600 mb-2">Pesanan Selesai</p>
+                <h3 id="completedCount" class="text-4xl text-green-500 font-bold">0</h3>
+            </div>
+            <div class="glass p-6 rounded-2xl text-center">
+                <p class="text-gray-600 mb-2">Total Pendapatan</p>
+                <h3 id="totalRevenue" class="text-3xl text-purple-600 font-bold">Rp 0</h3>
             </div>
         </div>
-    </nav>
-
-    <div class="container mx-auto px-4 py-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-pink-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-600 text-sm">Pesanan Pending</p>
-                        <p class="text-3xl font-bold text-pink-500" id="pendingCount">0</p>
-                    </div>
-                    <span class="text-4xl">⏳</span>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-600 text-sm">Pesanan Selesai</p>
-                        <p class="text-3xl font-bold text-green-500" id="completedCount">0</p>
-                    </div>
-                    <span class="text-4xl">✅</span>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-rose-500">
-                <div>
-                    <p class="text-gray-600 text-sm">Total Pendapatan</p>
-                    <p class="text-2xl font-bold text-rose-500" id="totalRevenue">Rp 0</p>
-                </div>
-            </div>
+        <div class="glass p-6 rounded-2xl">
+            <canvas id="chartSales"></canvas>
         </div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">Tambah Produk Baru</h2>
-                <form id="addProductForm" class="space-y-3">
-                    <div>
-                        <label class="text-sm font-medium">Nama Produk</label>
-                        <input id="newName" class="w-full px-4 py-2 border rounded-lg" required />
-                    </div>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div>
-                            <label class="text-sm font-medium">Harga (Rp)</label>
-                            <input id="newPrice" type="number" min="0" class="w-full px-4 py-2 border rounded-lg" required />
-                        </div>
-                        <div>
-                            <label class="text-sm font-medium">Stok</label>
-                            <input id="newStock" type="number" min="0" class="w-full px-4 py-2 border rounded-lg" required />
-                        </div>
-                        <div>
-                            <label class="text-sm font-medium">Kategori</label>
-                            <select id="newCategory" class="w-full px-4 py-2 border rounded-lg">
-                                <option value="elektronik">Elektronik</option>
-                                <option value="fashion">Fashion</option>
-                                <option value="makanan">Makanan</option>
-                                <option value="alat-tulis">Alat Tulis</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Emoji / Ikon (opsional)</label>
-                        <input id="newImage" class="w-full px-4 py-2 border rounded-lg" placeholder="Contoh: 🖥️ or 📱" />
-                    </div>
-                    <div>
-                        <button type="submit" class="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold">Tambah Produk</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">Daftar Pesanan (Admin)</h2>
-                <div id="adminOrdersList">
-                    <!-- Orders table will be rendered here -->
-                </div>
-            </div>
+    <!-- Products Tab -->
+    <div id="contentProducts" class="hidden">
+        <div class="mb-4">
+            <button onclick="openAddProduct()" class="btn-main px-6 py-3 rounded-xl text-white font-semibold">➕ Tambah Produk Baru</button>
         </div>
+        <div id="productsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">Daftar Produk (Preview)</h2>
-            <div id="adminProductList" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <!-- product cards -->
-            </div>
-        </div>
+    <!-- Orders Tab -->
+    <div id="contentOrders" class="hidden">
+        <div id="adminOrdersList" class="space-y-3"></div>
     </div>
 </div>
 
-<!-- Cart Modal -->
+<!-- CART MODAL -->
 <div id="cartModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <div class="bg-gradient-to-r from-pink-500 to-rose-500 p-6 flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">🛒 Keranjang Belanja</h2>
-            <button onclick="toggleCart()" class="text-white hover:text-pink-200 transition">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
+    <div class="glass w-full max-w-lg p-6 rounded-3xl shadow-2xl max-h-[90vh] overflow-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-pink-600">🛒 Keranjang Belanja</h2>
+            <button id="btnCloseCart" class="text-gray-600 hover:text-pink-600 text-3xl leading-none">&times;</button>
         </div>
-        <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]" id="cartItems">
-            <!-- Cart items here -->
+
+        <div class="mb-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="selectAllCart" class="w-5 h-5 accent-pink-500" />
+                <span class="font-semibold text-gray-700">Pilih Semua</span>
+            </label>
         </div>
-        <div class="border-t p-6 space-y-3">
-            <div class="flex justify-between items-center">
-                <span class="text-xl font-semibold">Total:</span>
-                <span class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent" id="totalPrice">Rp 0</span>
+
+        <div id="cartItems" class="space-y-3 mb-4"></div>
+        <div class="border-t pt-4 mt-4">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-lg font-semibold">Total (<span id="selectedCount">0</span> item):</span>
+                <span id="totalPrice" class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">Rp 0</span>
             </div>
-            <button onclick="checkout()" class="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold text-lg hover:from-pink-600 hover:to-rose-600 transition shadow-lg">
-                Checkout Sekarang
-            </button>
+            <button id="btnCheckout" class="btn-main w-full py-3 rounded-xl text-white font-semibold">Checkout Item Terpilih</button>
         </div>
     </div>
 </div>
 
-<!-- User Orders Modal -->
-<div id="userOrdersModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <div class="bg-gradient-to-r from-pink-500 to-rose-500 p-6 flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">📦 Pesanan Saya</h2>
-            <button onclick="closeUserOrders()" class="text-white hover:text-pink-200 transition">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
+<!-- USER ORDERS MODAL -->
+<div id="ordersModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="glass w-full max-w-3xl p-6 rounded-3xl shadow-2xl max-h-[90vh] overflow-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-pink-600">📦 Pesanan Saya</h2>
+            <button id="btnCloseOrders" class="text-gray-600 hover:text-pink-600 text-3xl leading-none">&times;</button>
         </div>
-        <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]" id="userOrdersList">
-            <!-- User orders here -->
-        </div>
-    </div>
-</div>
-
-<!-- Edit Order Modal (Admin) -->
-<div id="editOrderModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
-        <div class="bg-gradient-to-r from-pink-500 to-rose-500 p-6 flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-white">✏️ Edit Pesanan</h2>
-            <button onclick="closeEditOrder()" class="text-white hover:text-pink-200 transition">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]" id="editOrderContent">
-            <!-- edit form -->
-        </div>
-        <div class="border-t p-6 flex justify-between items-center">
-            <span id="editOrderTotal" class="text-xl font-bold"></span>
-            <div class="space-x-3">
-                <button onclick="saveEditedOrder()" class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold">Simpan Perubahan</button>
-                <button onclick="closeEditOrder()" class="px-6 py-3 bg-white border rounded-xl">Batal</button>
-            </div>
-        </div>
+        <div id="ordersList" class="space-y-4"></div>
     </div>
 </div>
 
 <script>
-    // Default products data (will be saved to localStorage)
-    const defaultProducts = [
-        { id: 1, name: 'Laptop Gaming', price: 15000000, category: 'elektronik', stock: 5, image: '💻' },
-        { id: 2, name: 'Smartphone Pro', price: 5000000, category: 'elektronik', stock: 10, image: '📱' },
-        { id: 3, name: 'Headphone Wireless', price: 500000, category: 'elektronik', stock: 15, image: '🎧' },
-        { id: 4, name: 'Kaos Premium', price: 75000, category: 'fashion', stock: 50, image: '👕' },
-        { id: 5, name: 'Celana Jeans', price: 250000, category: 'fashion', stock: 30, image: '👖' },
-        { id: 6, name: 'Sepatu Sneakers', price: 450000, category: 'fashion', stock: 20, image: '👟' },
-        { id: 7, name: 'Kopi Arabica Premium', price: 45000, category: 'makanan', stock: 100, image: '☕' },
-        { id: 8, name: 'Roti Sandwich', price: 25000, category: 'makanan', stock: 40, image: '🥪' },
-        { id: 9, name: 'Buku Tulis A5', price: 15000, category: 'alat-tulis', stock: 200, image: '📓' },
-        { id: 10, name: 'Pulpen Set', price: 5000, category: 'alat-tulis', stock: 500, image: '🖊️' },
-        { id: 11, name: 'Mouse Gaming RGB', price: 350000, category: 'elektronik', stock: 25, image: '🖱️' },
-        { id: 12, name: 'Tas Ransel', price: 350000, category: 'fashion', stock: 15, image: '🎒' },
+    // Initialize products from localStorage or use default
+    let products = JSON.parse(localStorage.getItem('products')) || [
+      { id: 1, name: 'Laptop Gaming', price: 15000000, category: 'elektronik', stock: 5, image: '💻' },
+      { id: 2, name: 'Smartphone Pro', price: 5000000, category: 'elektronik', stock: 10, image: '📱' },
+      { id: 3, name: 'Headphone Wireless', price: 500000, category: 'elektronik', stock: 15, image: '🎧' },
+      { id: 4, name: 'Kaos Premium', price: 75000, category: 'fashion', stock: 50, image: '👕' },
+      { id: 5, name: 'Celana Jeans', price: 250000, category: 'fashion', stock: 30, image: '👖' },
+      { id: 6, name: 'Sepatu Sneakers', price: 450000, category: 'fashion', stock: 20, image: '👟' },
+      { id: 7, name: 'Kopi Arabica', price: 45000, category: 'makanan', stock: 100, image: '☕' },
+      { id: 8, name: 'Roti Sandwich', price: 25000, category: 'makanan', stock: 40, image: '🥪' },
+      { id: 9, name: 'Buku Tulis A5', price: 15000, category: 'alat-tulis', stock: 200, image: '📓' },
+      { id: 10, name: 'Pulpen Set', price: 5000, category: 'alat-tulis', stock: 500, image: '🖊️' },
+      { id: 11, name: 'Mouse Gaming RGB', price: 350000, category: 'elektronik', stock: 25, image: '🖱️' },
+      { id: 12, name: 'Tas Ransel', price: 350000, category: 'fashion', stock: 15, image: '🎒' },
     ];
 
-    let products = [];
+    // Save products to localStorage
+    function saveProductsToStorage() {
+      localStorage.setItem('products', JSON.stringify(products));
+    }
+
     let currentUser = null;
     let cart = [];
     let currentCategory = 'semua';
+    let chartInstance = null;
 
-    // For editing orders
-    let editingOrderId = null;
+    // Elements
+    const loginScreen = document.getElementById('loginScreen');
+    const registerScreen = document.getElementById('registerScreen');
+    const userInterface = document.getElementById('userInterface');
+    const adminInterface = document.getElementById('adminInterface');
+    const cartModal = document.getElementById('cartModal');
+    const ordersModal = document.getElementById('ordersModal');
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-        loadProductsFromStorage();
-        checkAuth();
+    // Custom Dialog Functions
+    function showDialog(title, message, icon = '✅') {
+      document.getElementById('dialogTitle').textContent = title;
+      document.getElementById('dialogMessage').textContent = message;
+      document.getElementById('dialogIcon').textContent = icon;
+      document.getElementById('customDialog').classList.remove('hidden');
+    }
 
-        // add product form listener
-        const addForm = document.getElementById('addProductForm');
-        if (addForm) {
-            addForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                addNewProduct();
-            });
+    function closeDialog() {
+      document.getElementById('customDialog').classList.add('hidden');
+    }
+
+    document.getElementById('dialogBtn').addEventListener('click', closeDialog);
+
+    // Admin Tabs
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('contentDashboard').classList.add('hidden');
+      document.getElementById('contentProducts').classList.add('hidden');
+      document.getElementById('contentOrders').classList.add('hidden');
+
+      if (tab === 'dashboard') {
+        document.getElementById('tabDashboard').classList.add('active');
+        document.getElementById('contentDashboard').classList.remove('hidden');
+        loadAdminDashboard();
+      } else if (tab === 'products') {
+        document.getElementById('tabProducts').classList.add('active');
+        document.getElementById('contentProducts').classList.remove('hidden');
+        renderAdminProducts();
+      } else if (tab === 'orders') {
+        document.getElementById('tabOrders').classList.add('active');
+        document.getElementById('contentOrders').classList.remove('hidden');
+        renderAdminOrders();
+      }
+    }
+
+    // Product Management Functions
+    function openAddProduct() {
+      document.getElementById('productFormTitle').textContent = 'Tambah Produk Baru';
+      document.getElementById('editProductId').value = '';
+      document.getElementById('productName').value = '';
+      document.getElementById('productPrice').value = '';
+      document.getElementById('productStock').value = '';
+      document.getElementById('productCategory').value = 'elektronik';
+      document.getElementById('productImage').value = '';
+      document.getElementById('productFormModal').classList.remove('hidden');
+    }
+
+    function openEditProduct(id) {
+      const product = products.find(p => p.id === id);
+      if (!product) return;
+
+      document.getElementById('productFormTitle').textContent = 'Edit Produk';
+      document.getElementById('editProductId').value = product.id;
+      document.getElementById('productName').value = product.name;
+      document.getElementById('productPrice').value = product.price;
+      document.getElementById('productStock').value = product.stock;
+      document.getElementById('productCategory').value = product.category;
+      document.getElementById('productImage').value = product.image;
+      document.getElementById('productFormModal').classList.remove('hidden');
+    }
+
+    function closeProductForm() {
+      document.getElementById('productFormModal').classList.add('hidden');
+    }
+
+    function saveProduct() {
+      const id = document.getElementById('editProductId').value;
+      const name = document.getElementById('productName').value.trim();
+      const price = parseInt(document.getElementById('productPrice').value);
+      const stock = parseInt(document.getElementById('productStock').value);
+      const category = document.getElementById('productCategory').value;
+      const image = document.getElementById('productImage').value.trim() || '📦';
+
+      if (!name || !price || price < 0 || !stock || stock < 0) {
+        return showDialog('Error', 'Mohon isi semua field dengan benar!', '⚠️');
+      }
+
+      if (id) {
+        // Edit existing product
+        const product = products.find(p => p.id === parseInt(id));
+        if (product) {
+          product.name = name;
+          product.price = price;
+          product.stock = stock;
+          product.category = category;
+          product.image = image;
+          showDialog('Berhasil', 'Produk berhasil diupdate!', '✅');
         }
+      } else {
+        // Add new product
+        const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+        products.push({ id: newId, name, price, stock, category, image });
+        showDialog('Berhasil', 'Produk baru berhasil ditambahkan!', '✅');
+      }
+
+      saveProductsToStorage();
+      closeProductForm();
+      renderAdminProducts();
+    }
+
+    function deleteProduct(id) {
+      if (!confirm('Yakin ingin menghapus produk ini?')) return;
+
+      products = products.filter(p => p.id !== id);
+      saveProductsToStorage();
+      showDialog('Berhasil', 'Produk berhasil dihapus!', '✅');
+      renderAdminProducts();
+    }
+
+    function renderAdminProducts() {
+      const list = document.getElementById('productsList');
+      if (!products.length) {
+        list.innerHTML = '<p class="text-gray-500 text-center py-8 col-span-full">Belum ada produk</p>';
+        return;
+      }
+
+      list.innerHTML = products.map(p => `
+        <div class="glass p-5 rounded-2xl">
+          <div class="text-5xl text-center mb-3">${p.image}</div>
+          <h3 class="font-bold text-lg mb-1">${p.name}</h3>
+          <p class="text-pink-600 font-bold text-xl mb-1">${formatPrice(p.price)}</p>
+          <p class="text-sm text-gray-600 mb-1">Kategori: ${p.category}</p>
+          <p class="text-sm ${p.stock < 10 ? 'text-red-600 font-semibold' : 'text-gray-600'} mb-3">Stok: ${p.stock}</p>
+          <div class="flex gap-2">
+            <button onclick="openEditProduct(${p.id})" class="flex-1 px-3 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition">✏️ Edit</button>
+            <button onclick="deleteProduct(${p.id})" class="flex-1 px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition">🗑️ Hapus</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Event Listeners - Login/Register
+    document.getElementById('btnLogin').addEventListener('click', login);
+    document.getElementById('btnShowRegister').addEventListener('click', () => {
+      loginScreen.classList.add('hidden');
+      registerScreen.classList.remove('hidden');
+    });
+    document.getElementById('btnRegister').addEventListener('click', register);
+    document.getElementById('btnShowLogin').addEventListener('click', () => {
+      registerScreen.classList.add('hidden');
+      loginScreen.classList.remove('hidden');
     });
 
-    // Product storage helpers
-    function loadProductsFromStorage() {
-        const stored = JSON.parse(localStorage.getItem('products')) || null;
-        if (stored && Array.isArray(stored) && stored.length) {
-            products = stored;
-        } else {
-            products = defaultProducts.slice();
-            saveProductsToStorage();
-        }
-    }
+    // Event Listeners - User
+    document.getElementById('btnLogout').addEventListener('click', logout);
+    document.getElementById('btnCart').addEventListener('click', toggleCart);
+    document.getElementById('btnCloseCart').addEventListener('click', toggleCart);
+    document.getElementById('btnCheckout').addEventListener('click', checkout);
+    document.getElementById('btnShowOrders').addEventListener('click', showOrders);
+    document.getElementById('btnCloseOrders').addEventListener('click', () => ordersModal.classList.add('hidden'));
+    document.getElementById('searchInput').addEventListener('input', renderProducts);
 
-    function saveProductsToStorage() {
-        localStorage.setItem('products', JSON.stringify(products));
-    }
+    // Select All Cart
+    document.getElementById('selectAllCart').addEventListener('change', (e) => {
+      const checkboxes = document.querySelectorAll('.cart-item-checkbox');
+      checkboxes.forEach(cb => cb.checked = e.target.checked);
+      updateCartTotal();
+    });
 
-    // Authentication
+    // Event Listeners - Admin
+    document.getElementById('btnAdminLogout').addEventListener('click', logout);
+
+    // Category buttons
+    document.querySelectorAll('.category-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentCategory = e.target.getAttribute('data-cat');
+        renderProducts();
+      });
+    });
+
+    // Init
+    document.addEventListener('DOMContentLoaded', checkAuth);
+
+    // Auth Functions
     function login() {
-        const username = document.getElementById('loginUsername').value;
-        const password = document.getElementById('loginPassword').value;
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const remember = document.getElementById('rememberMe').checked;
 
-        if (username === 'admin' && password === 'admin123') {
-            currentUser = { username: 'admin', role: 'admin' };
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            showAdminInterface();
-        } else if (username === 'user' && password === 'user123') {
-            currentUser = { username: 'user', role: 'user' };
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            showUserInterface();
-        } else {
-            alert('Username atau password salah!');
+      if (!username || !password) {
+        showDialog('Error', 'Username dan password wajib diisi!', '⚠️');
+        return;
+      }
+
+      if (username === 'admin' && password === 'admin123') {
+        currentUser = { username: 'admin', role: 'admin', fullname: 'Administrator' };
+      } else if (username === 'user' && password === 'user123') {
+        currentUser = { username: 'user', role: 'user', fullname: 'Demo User' };
+      } else {
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const foundUser = users.find(u => u.username === username && u.password === password);
+
+        if (!foundUser) {
+          showDialog('Login Gagal', 'Username atau password salah!', '❌');
+          return;
         }
+
+        currentUser = foundUser;
+      }
+
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      if (remember) localStorage.setItem('rememberUser', JSON.stringify(currentUser));
+
+      if (currentUser.role === 'admin') showAdmin();
+      else showUser();
+    }
+
+    function register() {
+      const fullname = document.getElementById('regFullname').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+      if (fullname.length < 3) return showDialog('Error', 'Nama lengkap minimal 3 karakter!', '⚠️');
+      if (username.length < 4) return showDialog('Error', 'Username minimal 4 karakter!', '⚠️');
+      if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return showDialog('Error', 'Email tidak valid!', '⚠️');
+      if (password.length < 6) return showDialog('Error', 'Password minimal 6 karakter!', '⚠️');
+      if (password !== confirmPassword) return showDialog('Error', 'Password tidak cocok!', '⚠️');
+
+      let users = JSON.parse(localStorage.getItem('users')) || [];
+      if (users.find(u => u.username === username)) return showDialog('Error', 'Username sudah terdaftar!', '⚠️');
+
+      const newUser = {
+        fullname,
+        username,
+        email,
+        password,
+        role: 'user',
+        registeredAt: new Date().toISOString()
+      };
+
+      users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(users));
+
+      showDialog('Berhasil!', 'Registrasi berhasil! Silakan login dengan username dan password yang sudah dibuat.', '🎉');
+
+      document.getElementById('regFullname').value = '';
+      document.getElementById('regUsername').value = '';
+      document.getElementById('regEmail').value = '';
+      document.getElementById('regPassword').value = '';
+      document.getElementById('regConfirmPassword').value = '';
+
+      setTimeout(() => {
+        registerScreen.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+      }, 2000);
     }
 
     function logout() {
-        localStorage.removeItem('currentUser');
-        currentUser = null;
-        cart = [];
-        document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('userInterface').classList.add('hidden');
-        document.getElementById('adminInterface').classList.add('hidden');
-        document.getElementById('loginUsername').value = '';
-        document.getElementById('loginPassword').value = '';
+      currentUser = null;
+      cart = [];
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('rememberUser');
+      userInterface.classList.add('hidden');
+      adminInterface.classList.add('hidden');
+      loginScreen.classList.remove('hidden');
     }
 
     function checkAuth() {
-        const stored = localStorage.getItem('currentUser');
-        if (stored) {
-            currentUser = JSON.parse(stored);
-            if (currentUser.role === 'admin') {
-                showAdminInterface();
-            } else {
-                showUserInterface();
-            }
-        }
+      const remembered = localStorage.getItem('rememberUser');
+      const stored = localStorage.getItem('currentUser');
+
+      if (remembered) currentUser = JSON.parse(remembered);
+      else if (stored) currentUser = JSON.parse(stored);
+      else return;
+
+      if (currentUser.role === 'admin') showAdmin();
+      else showUser();
     }
 
-    function showUserInterface() {
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('userInterface').classList.remove('hidden');
-        document.getElementById('adminInterface').classList.add('hidden');
-        document.getElementById('userDisplayName').textContent = currentUser.username;
-        renderProducts();
-        updateCartBadge();
+    function showUser() {
+      loginScreen.classList.add('hidden');
+      registerScreen.classList.add('hidden');
+      adminInterface.classList.add('hidden');
+      userInterface.classList.remove('hidden');
+
+      document.getElementById('userName').textContent = currentUser.fullname || currentUser.username;
+
+      renderProducts();
+      updateCartBadge();
     }
 
-    function showAdminInterface() {
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('userInterface').classList.add('hidden');
-        document.getElementById('adminInterface').classList.remove('hidden');
-        loadAdminDashboard();
-        renderProducts();
+    function showAdmin() {
+      loginScreen.classList.add('hidden');
+      registerScreen.classList.add('hidden');
+      userInterface.classList.add('hidden');
+      adminInterface.classList.remove('hidden');
+
+      document.getElementById('adminName').textContent = currentUser.fullname || currentUser.username;
+
+      switchTab('dashboard');
     }
 
-    // Products
+    // Product Functions
     function renderProducts() {
-        const grid = document.getElementById('productGrid');
-        const adminList = document.getElementById('adminProductList');
-        const searchTerm = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+      const grid = document.getElementById('productGrid');
+      const searchValue = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = products.filter(p =>
+        (currentCategory === 'semua' || p.category === currentCategory) &&
+        p.name.toLowerCase().includes(searchValue)
+      );
 
-        const filtered = products.filter(p => {
-            const matchCategory = currentCategory === 'semua' || p.category === currentCategory;
-            const matchSearch = p.name.toLowerCase().includes(searchTerm);
-            return matchCategory && matchSearch;
-        });
+      grid.innerHTML = filtered.map(p => `
+        <div class="glass p-5 rounded-2xl hover:shadow-xl transition fade-in">
+          <div class="text-6xl text-center mb-3">${p.image}</div>
+          <h3 class="font-bold text-lg mb-1">${p.name}</h3>
+          <p class="text-pink-600 font-bold text-xl mb-1">${formatPrice(p.price)}</p>
+          <p class="text-xs text-gray-500 mb-3">Stok: ${p.stock}</p>
+          <div class="flex gap-2">
+            <button class="btn-main flex-1 py-2 rounded-xl text-white text-sm font-semibold" data-action="buy" data-id="${p.id}">⚡ Beli</button>
+            <button class="bg-white border-2 border-pink-300 flex-1 py-2 rounded-xl text-pink-600 text-sm font-semibold hover:bg-pink-50" data-action="cart" data-id="${p.id}">🛒 +</button>
+          </div>
+        </div>
+      `).join('');
 
-        if (grid) {
-            grid.innerHTML = filtered.map(product => `
-            <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all overflow-hidden transform hover:-translate-y-1">
-                <div class="h-48 bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center text-7xl">
-                    ${product.image || '📦'}
-                </div>
-                <div class="p-5">
-                    <h3 class="font-bold text-lg mb-2 text-gray-800">${product.name}</h3>
-                    <p class="text-gray-500 text-sm mb-2">📦 Stok: ${product.stock}</p>
-                    <p class="text-pink-600 font-bold text-2xl mb-4">${formatPrice(product.price)}</p>
-                    <div class="space-y-2">
-                        <button
-                            onclick="buyNow(${product.id})"
-                            class="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-md ${product.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
-                            ${product.stock === 0 ? 'disabled' : ''}
-                        >
-                            ${product.stock === 0 ? '❌ Stok Habis' : '⚡ Beli Langsung'}
-                        </button>
-                        <button
-                            onclick="addToCart(${product.id})"
-                            class="w-full py-3 bg-pink-100 text-pink-700 rounded-xl font-bold hover:bg-pink-200 transition ${product.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
-                            ${product.stock === 0 ? 'disabled' : ''}
-                        >
-                            🛒 Tambah ke Keranjang
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        }
-
-        // admin product preview
-        if (adminList) {
-            adminList.innerHTML = products.map(p => `
-            <div class="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-4 border-2 border-pink-200">
-                <div class="flex items-center space-x-3">
-                    <div class="text-4xl">${p.image || '📦'}</div>
-                    <div>
-                        <p class="font-bold">${p.name}</p>
-                        <p class="text-sm text-gray-600">${p.category} • Stok: ${p.stock}</p>
-                        <p class="text-pink-600 font-bold">${formatPrice(p.price)}</p>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        }
+      grid.querySelectorAll('[data-action="buy"]').forEach(btn => {
+        btn.addEventListener('click', () => buyNow(parseInt(btn.getAttribute('data-id'))));
+      });
+      grid.querySelectorAll('[data-action="cart"]').forEach(btn => {
+        btn.addEventListener('click', () => addToCart(parseInt(btn.getAttribute('data-id'))));
+      });
     }
 
-    function addNewProduct() {
-        const name = document.getElementById('newName').value.trim();
-        const price = Number(document.getElementById('newPrice').value);
-        const stock = Number(document.getElementById('newStock').value);
-        const category = document.getElementById('newCategory').value;
-        const image = document.getElementById('newImage').value.trim() || '📦';
+    function addToCart(id) {
+      const p = products.find(x => x.id === id);
+      if (!p || p.stock <= 0) return showDialog('Stok Habis', 'Produk tidak tersedia!', '❌');
 
-        if (!name || price < 0 || stock < 0) {
-            alert('Pastikan semua field terisi dengan benar.');
-            return;
-        }
+      const exist = cart.find(x => x.id === id);
+      if (exist) exist.qty++;
+      else cart.push({ ...p, qty: 1, selected: true });
 
-        const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-        const newProduct = { id: newId, name, price, category, stock, image };
-        products.unshift(newProduct);
-        saveProductsToStorage();
-        renderProducts();
-
-        // reset form
-        document.getElementById('addProductForm').reset();
-        showNotification('✅ Produk berhasil ditambahkan dan muncul di daftar.');
+      updateCartBadge();
+      showDialog('Berhasil!', `${p.name} ditambahkan ke keranjang`, '✅');
     }
 
-    // Cart Functions (same behavior)
-    function addToCart(productId) {
-        const product = products.find(p => p.id === productId);
-        const cartItem = cart.find(item => item.id === productId);
+    function buyNow(id) {
+      const p = products.find(x => x.id === id);
+      if (!p || p.stock <= 0) return showDialog('Stok Habis', 'Produk tidak tersedia!', '❌');
 
-        if (!product) return showNotification('Produk tidak ditemukan.');
+      const order = {
+        id: 'ORD' + Date.now(),
+        username: currentUser.username,
+        date: new Date().toLocaleString('id-ID'),
+        timestamp: Date.now(),
+        items: [{ ...p, qty: 1 }],
+        total: p.price,
+        status: 'pending'
+      };
 
-        if (cartItem) {
-            if (cartItem.quantity < product.stock) {
-                cartItem.quantity++;
-            } else {
-                alert('⚠️ Stok tidak mencukupi!');
-                return;
-            }
-        } else {
-            cart.push({ id: product.id, name: product.name, price: product.price, quantity: 1, image: product.image });
-        }
+      let orders = JSON.parse(localStorage.getItem('orders')) || [];
+      orders.unshift(order);
+      localStorage.setItem('orders', JSON.stringify(orders));
 
-        updateCartBadge();
-        showNotification('✅ Berhasil ditambahkan ke keranjang!');
-    }
-
-    function buyNow(productId) {
-        cart = [];
-        addToCart(productId);
-        toggleCart();
-    }
-
-    function toggleCart() {
-        const modal = document.getElementById('cartModal');
-        if (!modal) return;
-        modal.classList.toggle('hidden');
-        if (!modal.classList.contains('hidden')) {
-            updateCartDisplay();
-        }
-    }
-
-    function updateCartDisplay() {
-        const container = document.getElementById('cartItems');
-
-        if (!container) return;
-        if (cart.length === 0) {
-            container.innerHTML = '<p class="text-gray-400 text-center py-8">🛒 Keranjang masih kosong</p>';
-            document.getElementById('totalPrice').textContent = 'Rp 0';
-            return;
-        }
-
-        container.innerHTML = cart.map(item => `
-            <div class="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-4 mb-4 border-2 border-pink-200">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="flex-1">
-                        <h4 class="font-bold text-lg text-gray-800">${item.name}</h4>
-                        <p class="text-pink-600 font-bold text-xl">${formatPrice(item.price)}</p>
-                    </div>
-                    <button onclick="removeFromCart(${item.id})" class="text-red-500 hover:text-red-700 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <button onclick="decreaseQuantity(${item.id})" class="w-10 h-10 bg-white rounded-lg hover:bg-pink-100 transition font-bold text-pink-600 shadow">-</button>
-                        <span class="w-16 text-center font-bold text-xl text-gray-800">${item.quantity}</span>
-                        <button onclick="increaseQuantity(${item.id})" class="w-10 h-10 bg-white rounded-lg hover:bg-pink-100 transition font-bold text-pink-600 shadow">+</button>
-                    </div>
-                    <p class="font-bold text-xl text-gray-800">${formatPrice(item.price * item.quantity)}</p>
-                </div>
-            </div>
-        `).join('');
-
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        document.getElementById('totalPrice').textContent = formatPrice(total);
+      showDialog('Pesanan Dibuat!', 'Pesanan berhasil dibuat! Menunggu persetujuan admin. Struk akan dikirim setelah pesanan disetujui.', '🎉');
     }
 
     function updateCartBadge() {
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        const badge = document.getElementById('cartBadge');
-        if (badge) badge.textContent = totalItems;
+      document.getElementById('cartBadge').textContent = cart.reduce((s, i) => s + i.qty, 0);
     }
 
-    function increaseQuantity(productId) {
-        const product = products.find(p => p.id === productId);
-        const cartItem = cart.find(item => item.id === productId);
-
-        if (cartItem && product) {
-            if (cartItem.quantity < product.stock) {
-                cartItem.quantity++;
-                updateCartDisplay();
-                updateCartBadge();
-            } else {
-                alert('⚠️ Stok tidak mencukupi!');
-            }
-        }
+    function toggleCart() {
+      cartModal.classList.toggle('hidden');
+      if (!cartModal.classList.contains('hidden')) {
+        renderCart();
+      }
     }
 
-    function decreaseQuantity(productId) {
-        const cartItem = cart.find(item => item.id === productId);
-        if (!cartItem) return;
-        if (cartItem.quantity > 1) {
-            cartItem.quantity--;
-        } else {
-            cart = cart.filter(item => item.id !== productId);
-        }
-        updateCartDisplay();
-        updateCartBadge();
+    function renderCart() {
+      const c = document.getElementById('cartItems');
+      if (!cart.length) {
+        c.innerHTML = '<p class="text-gray-500 text-center py-8">Keranjang kosong</p>';
+        document.getElementById('totalPrice').textContent = 'Rp 0';
+        document.getElementById('selectedCount').textContent = '0';
+        return;
+      }
+
+      c.innerHTML = cart.map(i => `
+        <div class="flex items-center gap-3 bg-pink-50 p-3 rounded-xl">
+          <input type="checkbox" class="cart-item-checkbox w-5 h-5 accent-pink-500" data-id="${i.id}" ${i.selected ? 'checked' : ''} />
+          <div class="flex-1">
+            <p class="font-semibold">${i.image} ${i.name}</p>
+            <p class="text-sm text-gray-600">${formatPrice(i.price)} x ${i.qty}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="bg-pink-300 hover:bg-pink-400 w-8 h-8 rounded-lg font-bold" data-action="dec" data-id="${i.id}">−</button>
+            <span class="font-bold w-8 text-center">${i.qty}</span>
+            <button class="bg-pink-300 hover:bg-pink-400 w-8 h-8 rounded-lg font-bold" data-action="inc" data-id="${i.id}">+</button>
+            <button class="text-red-500 hover:text-red-700 ml-2 text-xl font-bold" data-action="remove" data-id="${i.id}">×</button>
+          </div>
+        </div>
+      `).join('');
+
+      c.querySelectorAll('.cart-item-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const id = parseInt(e.target.getAttribute('data-id'));
+          const item = cart.find(x => x.id === id);
+          if (item) item.selected = e.target.checked;
+          updateCartTotal();
+        });
+      });
+
+      c.querySelectorAll('[data-action="inc"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.getAttribute('data-id'));
+          const item = cart.find(x => x.id === id);
+          const product = products.find(x => x.id === id);
+          if (item && product && item.qty < product.stock) {
+            item.qty++;
+            renderCart();
+            updateCartBadge();
+          } else showDialog('Stok Habis', 'Stok tidak mencukupi!', '⚠️');
+        });
+      });
+
+      c.querySelectorAll('[data-action="dec"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.getAttribute('data-id'));
+          const item = cart.find(x => x.id === id);
+          if (item) {
+            item.qty--;
+            if (item.qty <= 0) cart = cart.filter(x => x.id !== id);
+            renderCart();
+            updateCartBadge();
+          }
+        });
+      });
+
+      c.querySelectorAll('[data-action="remove"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.getAttribute('data-id'));
+          cart = cart.filter(x => x.id !== id);
+          renderCart();
+          updateCartBadge();
+        });
+      });
+
+      updateCartTotal();
     }
 
-    function removeFromCart(productId) {
-        cart = cart.filter(item => item.id !== productId);
-        updateCartDisplay();
-        updateCartBadge();
+    function updateCartTotal() {
+      const selectedItems = cart.filter(i => i.selected);
+      const total = selectedItems.reduce((s, i) => s + (i.price * i.qty), 0);
+      const count = selectedItems.reduce((s, i) => s + i.qty, 0);
+
+      document.getElementById('totalPrice').textContent = formatPrice(total);
+      document.getElementById('selectedCount').textContent = count;
     }
 
-    // Checkout
     function checkout() {
-        if (cart.length === 0) {
-            alert('⚠️ Keranjang masih kosong!');
-            return;
-        }
+      const selectedItems = cart.filter(i => i.selected);
 
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const order = {
-            id: 'ORD' + Date.now(),
-            username: currentUser.username,
-            date: new Date().toLocaleString('id-ID'),
-            items: [...cart],
-            total: total,
-            status: 'pending'
-        };
+      if (!selectedItems.length) {
+        showDialog('Tidak Ada Item', 'Pilih minimal 1 item untuk checkout!', '⚠️');
+        return;
+      }
 
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
-        orders.unshift(order);
-        localStorage.setItem('orders', JSON.stringify(orders));
+      const order = {
+        id: 'ORD' + Date.now(),
+        username: currentUser.username,
+        date: new Date().toLocaleString('id-ID'),
+        timestamp: Date.now(),
+        items: selectedItems.map(i => ({ ...i })),
+        total: selectedItems.reduce((s, i) => s + (i.price * i.qty), 0),
+        status: 'pending'
+      };
 
-        showNotification(`✅ Pesanan berhasil dibuat!\nID: ${order.id}\nMenunggu persetujuan admin`);
+      let orders = JSON.parse(localStorage.getItem('orders')) || [];
+      orders.unshift(order);
+      localStorage.setItem('orders', JSON.stringify(orders));
 
-        cart = [];
-        updateCartDisplay();
-        updateCartBadge();
-        toggleCart();
+      cart = cart.filter(i => !i.selected);
+
+      showDialog('Checkout Berhasil!', `${selectedItems.length} item berhasil di-checkout! Menunggu persetujuan admin.`, '🎉');
+
+      renderCart();
+      updateCartBadge();
+      toggleCart();
     }
 
-    // User Orders
-    function showUserOrders() {
-        const modal = document.getElementById('userOrdersModal');
-        if (!modal) return;
-        modal.classList.remove('hidden');
-        loadUserOrders();
-    }
+    function showOrders() {
+      ordersModal.classList.remove('hidden');
+      const orders = JSON.parse(localStorage.getItem('orders')) || [];
+      const mine = orders.filter(o => o.username === currentUser.username);
+      const list = document.getElementById('ordersList');
 
-    function closeUserOrders() {
-        const modal = document.getElementById('userOrdersModal');
-        if (!modal) return;
-        modal.classList.add('hidden');
-    }
+      if (!mine.length) {
+        list.innerHTML = '<p class="text-gray-500 text-center py-8">Belum ada pesanan</p>';
+        return;
+      }
 
-    function loadUserOrders() {
-        const orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const userOrders = orders.filter(o => o.username === currentUser.username);
-        const container = document.getElementById('userOrdersList');
-
-        if (!container) return;
-        if (userOrders.length === 0) {
-            container.innerHTML = '<p class="text-gray-400 text-center py-8">📦 Belum ada pesanan</p>';
-            return;
-        }
-
-        container.innerHTML = userOrders.map(order => `
-            <div class="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-6 mb-4 border-2 ${order.status === 'pending' ? 'border-yellow-300' : 'border-green-300'}">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <p class="font-bold text-lg text-gray-800">🆔 ${order.id}</p>
-                        <p class="text-sm text-gray-600">📅 ${order.date}</p>
-                    </div>
-                    <span class="px-4 py-2 rounded-full font-bold ${order.status === 'pending' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
-                        ${order.status === 'pending' ? '⏳ Sedang Diproses' : '✅ Selesai'}
-                    </span>
-                </div>
-                <div class="space-y-2 mb-4">
-                    ${order.items.map(item => `
-                        <div class="flex justify-between text-sm bg-white p-3 rounded-lg">
-                            <span class="font-medium">${item.image} ${item.name} x${item.quantity}</span>
-                            <span class="font-bold text-pink-600">${formatPrice(item.price * item.quantity)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="flex justify-between items-center pt-4 border-t-2 border-pink-200">
-                    <span class="font-bold text-lg">Total:</span>
-                    <span class="text-2xl font-bold text-pink-600">${formatPrice(order.total)}</span>
-                </div>
+      list.innerHTML = mine.map(o => `
+        <div class="glass p-5 rounded-2xl">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="font-bold text-lg">${o.id}</p>
+              <p class="text-sm text-gray-600">${o.date}</p>
             </div>
-        `).join('');
+            <span class="px-3 py-1 rounded-full text-sm font-semibold ${o.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}">
+              ${o.status === 'pending' ? '⏳ Diproses' : '✅ Selesai'}
+            </span>
+          </div>
+          <div class="text-sm mb-3">
+            ${o.items.map(i => `${i.image} ${i.name} x${i.qty}`).join(', ')}
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-2xl font-bold text-pink-600">${formatPrice(o.total)}</span>
+            ${o.status === 'completed' ? `<button class="btn-main px-4 py-2 rounded-xl text-white font-medium" onclick="printReceipt('${o.id}')">🖨 Cetak Struk</button>` : '<span class="text-sm text-gray-500">Struk akan tersedia setelah disetujui admin</span>'}
+          </div>
+        </div>
+      `).join('');
     }
 
-    // Admin Functions: Orders list with edit & delete
+    function printReceipt(id) {
+      const orders = JSON.parse(localStorage.getItem('orders')) || [];
+      const o = orders.find(x => x.id === id);
+      if (!o) return showDialog('Error', 'Order tidak ditemukan!', '❌');
+      if (o.status !== 'completed') return showDialog('Belum Disetujui', 'Pesanan belum disetujui admin!', '⚠️');
+
+      const win = window.open('', '_blank', 'width=400,height=600');
+      win.document.write(`
+        <html>
+          <head>
+            <title>Struk ${o.id}</title>
+            <style>
+              body { font-family: monospace; padding: 20px; }
+              h3 { text-align: center; }
+              hr { margin: 10px 0; }
+            </style>
+          </head>
+          <body>
+            <h3>🛍️ POS Marketplace</h3>
+            <p><strong>ID:</strong> ${o.id}</p>
+            <p><strong>Tanggal:</strong> ${o.date}</p>
+            <p><strong>Customer:</strong> ${o.username}</p>
+            <hr />
+            ${o.items.map(i => `<div>${i.name} x${i.qty} - ${formatPrice(i.price * i.qty)}</div>`).join('')}
+            <hr />
+            <p><strong>Total:</strong> ${formatPrice(o.total)}</p>
+            <p style="text-align:center; margin-top:30px;">Terima kasih atas pembelian Anda!</p>
+            <p style="text-align:center; font-size:10px;">Pesanan telah disetujui dan diproses</p>
+          </body>
+        </html>
+      `);
+      win.document.close();
+      win.print();
+    }
+
+    // Admin Functions
     function loadAdminDashboard() {
-        const orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const pending = orders.filter(o => o.status === 'pending').length;
-        const completed = orders.filter(o => o.status === 'completed').length;
-        const revenue = orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.total, 0);
+      const orders = JSON.parse(localStorage.getItem('orders')) || [];
+      const pending = orders.filter(o => o.status === 'pending').length;
+      const completed = orders.filter(o => o.status === 'completed').length;
+      const revenue = orders.filter(o => o.status === 'completed').reduce((s, o) => s + o.total, 0);
 
-        const pendingEl = document.getElementById('pendingCount');
-        const completedEl = document.getElementById('completedCount');
-        const revenueEl = document.getElementById('totalRevenue');
+      document.getElementById('pendingCount').textContent = pending;
+      document.getElementById('completedCount').textContent = completed;
+      document.getElementById('totalRevenue').textContent = formatPrice(revenue);
 
-        if (pendingEl) pendingEl.textContent = pending;
-        if (completedEl) completedEl.textContent = completed;
-        if (revenueEl) revenueEl.textContent = formatPrice(revenue);
-
-        renderAdminOrders();
+      renderChart(orders);
     }
 
     function renderAdminOrders() {
-        const orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const container = document.getElementById('adminOrdersList');
+      const orders = JSON.parse(localStorage.getItem('orders')) || [];
+      const list = document.getElementById('adminOrdersList');
+      if (!orders.length) {
+        list.innerHTML = '<p class="text-gray-500 text-center py-8">Belum ada pesanan</p>';
+        return;
+      }
 
-        if (!container) return;
-        if (orders.length === 0) {
-            container.innerHTML = '<p class="text-gray-400 text-center py-8">📦 Belum ada pesanan</p>';
-            return;
-        }
-
-        // render as table
-        container.innerHTML = `
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">ID</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">User</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Tanggal</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Total</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-100">
-                        ${orders.map(order => `
-                            <tr class="hover:bg-pink-50">
-                                <td class="px-4 py-3 text-sm font-medium text-gray-800">${order.id}</td>
-                                <td class="px-4 py-3 text-sm text-gray-600">${order.username}</td>
-                                <td class="px-4 py-3 text-sm text-gray-600">${order.date}</td>
-                                <td class="px-4 py-3 text-sm font-bold text-pink-600">${formatPrice(order.total)}</td>
-                                <td class="px-4 py-3 text-sm">
-                                    <span class="px-3 py-1 rounded-full text-xs font-bold ${order.status === 'pending' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">${order.status}</span>
-                                </td>
-                                <td class="px-4 py-3 text-sm space-x-2">
-                                    <button onclick="openEditOrder('${order.id}')" class="px-3 py-1 bg-white border rounded-md">✏️ Edit</button>
-                                    <button onclick="approveOrder('${order.id}')" class="px-3 py-1 bg-green-500 text-white rounded-md">✅ Setujui</button>
-                                    <button onclick="printReceipt('${order.id}')" class="px-3 py-1 bg-pink-500 text-white rounded-md">🖨️ Cetak</button>
-                                    <button onclick="deleteOrder('${order.id}')" class="px-3 py-1 bg-red-500 text-white rounded-md">🗑️ Hapus</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+      list.innerHTML = orders.map(o => `
+        <div class="bg-white p-5 rounded-2xl border-2 ${o.status === 'pending' ? 'border-yellow-300' : 'border-green-300'}">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <p class="font-bold">${o.id}</p>
+              <p class="text-sm text-gray-600">User: ${o.username} | ${o.date}</p>
             </div>
-        `;
+            <span class="px-3 py-1 rounded-full text-sm font-semibold ${o.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}">
+              ${o.status === 'pending' ? '⏳ Pending' : '✅ Selesai'}
+            </span>
+          </div>
+          <p class="text-sm mb-2">${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
+          <div class="flex justify-between items-center">
+            <span class="text-xl font-bold text-pink-600">${formatPrice(o.total)}</span>
+            ${o.status === 'pending' ? `<button class="btn-main px-4 py-2 rounded-xl text-white font-medium" onclick="approveOrder('${o.id}')">✅ Setujui & Kirim Struk</button>` : '<span class="text-sm text-green-600">✓ Struk telah dikirim</span>'}
+          </div>
+        </div>
+      `).join('');
     }
 
-    function openEditOrder(orderId) {
-        const orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const order = orders.find(o => o.id === orderId);
-        if (!order) return showNotification('Pesanan tidak ditemukan.');
+    function approveOrder(id) {
+      let orders = JSON.parse(localStorage.getItem('orders')) || [];
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx === -1) return;
 
-        // only allow editing pending orders for simplicity
-        if (order.status !== 'pending') return showNotification('Hanya pesanan dengan status pending yang bisa diedit.');
+      const order = orders[idx];
+      orders[idx].status = 'completed';
 
-        editingOrderId = orderId;
-        const container = document.getElementById('editOrderContent');
-
-        container.innerHTML = `
-            <div class="space-y-4">
-                <p class="font-bold">🆔 ${order.id}</p>
-                <p class="text-sm text-gray-600">User: ${order.username}</p>
-                <div id="editItemsList" class="space-y-3">
-                    ${order.items.map(item => `
-                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                            <div>
-                                <p class="font-medium">${item.image} ${item.name}</p>
-                                <p class="text-sm text-gray-500">Harga: ${formatPrice(item.price)}</p>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <button onclick="editDecrease('${order.id}', ${item.id})" class="px-3 py-1 bg-white border rounded">-</button>
-                                <input type="number" min="1" value="${item.quantity}" data-product-id="${item.id}" class="w-16 text-center rounded border px-2 py-1 edit-qty-input" />
-                                <button onclick="editIncrease('${order.id}', ${item.id})" class="px-3 py-1 bg-white border rounded">+</button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <div>
-                    <label class="text-sm font-medium">Catatan (opsional)</label>
-                    <textarea id="editOrderNote" class="w-full border rounded p-2" placeholder="Catatan untuk pesanan...">${order.note || ''}</textarea>
-                </div>
-            </div>
-        `;
-
-        // calculate and show total
-        document.getElementById('editOrderTotal').textContent = 'Total: ' + formatPrice(order.total);
-
-        document.getElementById('editOrderModal').classList.remove('hidden');
-    }
-
-    function closeEditOrder() {
-        editingOrderId = null;
-        const modal = document.getElementById('editOrderModal');
-        if (!modal) return;
-        modal.classList.add('hidden');
-        document.getElementById('editOrderContent').innerHTML = '';
-    }
-
-    function editIncrease(orderId, productId) {
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const order = orders.find(o => o.id === orderId);
-        if (!order) return;
-        const item = order.items.find(i => i.id === productId);
-        const product = products.find(p => p.id === productId);
-        if (!item || !product) return;
-        if (item.quantity < product.stock) {
-            item.quantity++;
-            // update input value
-            const input = document.querySelector(`#editItemsList input[data-product-id='${productId}']`);
-            if (input) input.value = item.quantity;
-            // update total shown
-            const newTotal = order.items.reduce((s, it) => s + it.price * it.quantity, 0);
-            document.getElementById('editOrderTotal').textContent = 'Total: ' + formatPrice(newTotal);
-        } else {
-            showNotification('⚠️ Stok tidak mencukupi untuk menambah jumlah.');
+      orders[idx].items.forEach(item => {
+        const product = products.find(p => p.id === item.id);
+        if (product) {
+          product.stock = Math.max(0, product.stock - item.qty);
         }
+      });
+
+      saveProductsToStorage();
+      localStorage.setItem('orders', JSON.stringify(orders));
+
+      showDialog('Pesanan Disetujui!', `Pesanan ${id} telah disetujui! Struk sudah tersedia untuk user.`, '✅');
+
+      printReceipt(id);
+
+      renderAdminOrders();
+      loadAdminDashboard();
     }
 
-    function editDecrease(orderId, productId) {
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const order = orders.find(o => o.id === orderId);
-        if (!order) return;
-        const item = order.items.find(i => i.id === productId);
-        if (!item) return;
-        if (item.quantity > 1) {
-            item.quantity--;
-            const input = document.querySelector(`#editItemsList input[data-product-id='${productId}']`);
-            if (input) input.value = item.quantity;
-            const newTotal = order.items.reduce((s, it) => s + it.price * it.quantity, 0);
-            document.getElementById('editOrderTotal').textContent = 'Total: ' + formatPrice(newTotal);
-        } else {
-            // remove item from order
-            order.items = order.items.filter(i => i.id !== productId);
-            // save and reopen to refresh UI
-            orders = orders.map(o => o.id === orderId ? order : o);
-            localStorage.setItem('orders', JSON.stringify(orders));
-            openEditOrder(orderId);
+    function renderChart(orders) {
+      const ctx = document.getElementById('chartSales').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      const salesByDate = {};
+      orders.filter(o => o.status === 'completed').forEach(o => {
+        const d = o.date.split(',')[0];
+        salesByDate[d] = (salesByDate[d] || 0) + o.total;
+      });
+
+      const labels = Object.keys(salesByDate).sort();
+      const data = labels.map(d => salesByDate[d]);
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Penjualan (Rp)',
+            data,
+            backgroundColor: 'rgba(236, 72, 153, 0.2)',
+            borderColor: 'rgba(236, 72, 153, 1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: 'rgba(236, 72, 153, 1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: v => 'Rp ' + v.toLocaleString() }
+            }
+          }
         }
+      });
     }
 
-    function saveEditedOrder() {
-        if (!editingOrderId) return;
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const orderIndex = orders.findIndex(o => o.id === editingOrderId);
-        if (orderIndex === -1) return showNotification('Pesanan tidak ditemukan.');
-
-        const containerInputs = document.querySelectorAll('.edit-qty-input');
-        const order = orders[orderIndex];
-
-        // update quantities from inputs
-        containerInputs.forEach(inp => {
-            const pid = Number(inp.getAttribute('data-product-id'));
-            const q = Number(inp.value) || 1;
-            const item = order.items.find(i => i.id === pid);
-            const product = products.find(p => p.id === pid);
-            if (item && product) {
-                if (q <= product.stock) {
-                    item.quantity = q;
-                } else {
-                    item.quantity = product.stock;
-                }
-            }
-        });
-
-        // remove any items with zero quantity
-        order.items = order.items.filter(i => i.quantity > 0);
-
-        // update note
-        const noteEl = document.getElementById('editOrderNote');
-        if (noteEl) order.note = noteEl.value.trim();
-
-        // recalc total
-        order.total = order.items.reduce((s, it) => s + it.price * it.quantity, 0);
-
-        orders[orderIndex] = order;
-        localStorage.setItem('orders', JSON.stringify(orders));
-
-        showNotification('✅ Perubahan pesanan tersimpan.');
-        closeEditOrder();
-        loadAdminDashboard();
-    }
-
-    function deleteOrder(orderId) {
-        if (!confirm('Yakin ingin menghapus pesanan ini?')) return;
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
-        orders = orders.filter(o => o.id !== orderId);
-        localStorage.setItem('orders', JSON.stringify(orders));
-        showNotification('🗑️ Pesanan dihapus.');
-        loadAdminDashboard();
-    }
-
-    function approveOrder(orderId) {
-        let orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const order = orders.find(o => o.id === orderId);
-
-        if (order) {
-            if (order.status === 'completed') {
-                showNotification('Pesanan sudah disetujui sebelumnya.');
-                return;
-            }
-            order.status = 'completed';
-
-            // Update stock (if possible). If stock insufficient, show warning and stop.
-            let insufficient = false;
-            order.items.forEach(item => {
-                const product = products.find(p => p.id === item.id);
-                if (product) {
-                    if (product.stock >= item.quantity) {
-                        product.stock -= item.quantity;
-                    } else {
-                        insufficient = true;
-                    }
-                }
-            });
-
-            if (insufficient) {
-                showNotification('⚠️ Stok tidak mencukupi untuk beberapa item. Proses dibatalkan.');
-                // revert any stock changes we made by reloading products from storage (original)
-                loadProductsFromStorage();
-                return;
-            }
-
-            saveProductsToStorage();
-            localStorage.setItem('orders', JSON.stringify(orders));
-            showNotification('✅ Pesanan berhasil disetujui!');
-            loadAdminDashboard();
-        }
-    }
-
-    function printReceipt(orderId) {
-        const orders = JSON.parse(localStorage.getItem('orders')) || [];
-        const order = orders.find(o => o.id === orderId);
-        if (!order) return showNotification('Pesanan tidak ditemukan.');
-        
-        let printContent = `
-            <h2>🛒 Struk Pesanan POS Marketplace</h2>
-            <p>ID: ${order.id}</p>
-            <p>User: ${order.username}</p>
-            <p>Tanggal: ${order.date}</p>
-            <hr/>
-            ${order.items.map(i => `<p>${i.image} ${i.name} x${i.quantity} = ${formatPrice(i.price * i.quantity)}</p>`).join('')}
-            <hr/>
-            <p>Total: ${formatPrice(order.total)}</p>
-            <p>Terima kasih telah berbelanja 💖</p>
-        `;
-        const printWindow = window.open('', '', 'width=600,height=600');
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    }
-
-    // Utility Functions
-    function filterCategory(category) {
-        currentCategory = category;
-
-        document.querySelectorAll('.category-btn').forEach(btn => {
-            btn.classList.remove('active', 'bg-gradient-to-r', 'from-pink-500', 'to-rose-500', 'text-white', 'shadow-lg');
-            btn.classList.add('bg-white', 'text-gray-700');
-        });
-        // event might be undefined when called programmatically
-        try { event.target.classList.remove('bg-white', 'text-gray-700'); event.target.classList.add('active', 'bg-gradient-to-r', 'from-pink-500', 'to-rose-500', 'text-white', 'shadow-lg'); } catch (e) {}
-
-        renderProducts();
-    }
-
-    function searchProducts() {
-        renderProducts();
-    }
-
-    function formatPrice(price) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(price);
-    }
-
-    function showNotification(message) {
-        alert(message);
+    function formatPrice(num) {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+      }).format(num);
     }
 </script>
-
-<style>
-    .category-btn {
-        @apply bg-white text-gray-700;
-    }
-    .category-btn.active {
-        @apply bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg;
-    }
-</style>
 </body>
 </html>
